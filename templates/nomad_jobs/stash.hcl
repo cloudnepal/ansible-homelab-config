@@ -40,6 +40,7 @@ job "stash" {
       env {
           PUID                = "${meta.PUID}"
           PGID                = "${meta.PGID}"
+          TZ                  = "America/New_York"
           STASH_STASH         = "/data/"
           STASH_GENERATED     = "/generated/"
           STASH_METADATA      = "/metadata/"
@@ -58,6 +59,7 @@ job "stash" {
             "${meta.nfsStorageRoot}/nate/.stash/generated:/generated",
             "${meta.nfsStorageRoot}/nate/.stash/media:/data",
             "${meta.nfsStorageRoot}/nate/.stash/metadata:/metadata",
+            "${meta.nfsStorageRoot}/nate/.stash/blobs:/blobs",
             "/etc/timezone:/etc/timezone:ro"
           ]
           ports = ["port1"]
@@ -66,6 +68,7 @@ job "stash" {
       service  {
           port = "port1"
           name = "${NOMAD_JOB_NAME}"
+          provider = "nomad"
           tags = [
               "traefik.enable=true",
               "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.{{ homelab_domain_name }}`)",
@@ -73,7 +76,6 @@ job "stash" {
               "traefik.http.routers.${NOMAD_JOB_NAME}.service=${NOMAD_JOB_NAME}",
               "traefik.http.routers.${NOMAD_JOB_NAME}.tls=true",
               "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=cloudflare",
-              "traefik.http.routers.${NOMAD_JOB_NAME}.middlewares=authelia@file"
             ]
 
           check {
@@ -85,12 +87,11 @@ job "stash" {
           check_restart {
               limit           = 0
               grace           = "1m"
-              ignore_warnings = true
           }
       } // service
 
       resources {
-          cpu    = 4500 # MHz
+          cpu    = 3000 # MHz
           memory = 400 # MB
       } // resources
 

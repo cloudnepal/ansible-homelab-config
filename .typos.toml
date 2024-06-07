@@ -1,0 +1,9 @@
+[default]
+    default.locale = "en_us"
+
+    [default.extend-words]
+        Hashi    = "Hashi"    # Hashicorpt
+        hishtory = "hishtory" # Used for the hishtory package
+
+[files]
+    extend-exclude = ["galaxy-roles/"]

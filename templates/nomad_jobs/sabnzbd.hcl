@@ -1,13 +1,13 @@
-job "freshrss" {
+job "sabnzbd" {
     region      = "global"
     datacenters = ["{{ datacenter_name }}"]
     type        = "service"
 
-    // constraint {
-    //     attribute = "${node.unique.name}"
-    //     operator  = "regexp"
-    //     value     = "rpi(1|2|3)"
-    // }
+    constraint {
+        attribute = "${node.unique.name}"
+        operator  = "regexp"
+        value     = "macmini"
+    }
 
   update {
       max_parallel      = 1
@@ -20,7 +20,7 @@ job "freshrss" {
       stagger           = "30s"
   }
 
-  group "freshrss" {
+  group "sabnzbd" {
 
     count = 1
 
@@ -30,44 +30,54 @@ job "freshrss" {
     }
 
     network {
-        port "port1" {
-            to     = "80"
+        port "http" {
+            static = "8080"
+            to     = "8080"
         }
+
     }
 
-    task "freshrss" {
+    task "sabnzbd" {
 
       env {
           PUID        = "${meta.PUID}"
           PGID        = "${meta.PGID}"
           TZ          = "America/New_York"
+          DOCKER_MODS = "linuxserver/mods:universal-cron"
       }
 
       driver = "docker"
       config {
-          image    = "lscr.io/linuxserver/freshrss"
+          image    = "ghcr.io/linuxserver/sabnzbd"
           hostname = "${NOMAD_TASK_NAME}"
-          volumes  = [ "${meta.nfsStorageRoot}/pi-cluster/${NOMAD_TASK_NAME}:/config" ]
-          ports = ["port1"]
+          volumes  = [
+            "${meta.nfsStorageRoot}/pi-cluster/${NOMAD_TASK_NAME}:/config",
+            "${meta.nfsStorageRoot}/media/downloads/nzb:/nzbd",
+            "${meta.nfsStorageRoot}/media/downloads/temp:/incomplete-downloads",
+            "${meta.nfsStorageRoot}/media/downloads/complete:/downloads",
+            "${meta.nfsStorageRoot}/nate:/nate",
+            "${meta.nfsStorageRoot}/pi-cluster/${NOMAD_TASK_NAME}/startup-scripts:/custom-cont-init.d"
+          ]
+          ports = ["http"]
       } // docker config
 
-      service  {
-          port = "port1"
+      service {
+          port = "http"
           name = "${NOMAD_TASK_NAME}"
           provider = "nomad"
           tags = [
               "traefik.enable=true",
-              "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`rss.{{ homelab_domain_name }}`)",
+              "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`sab.{{ homelab_domain_name }}`)",
               "traefik.http.routers.${NOMAD_TASK_NAME}.entryPoints=web,websecure",
               "traefik.http.routers.${NOMAD_TASK_NAME}.service=${NOMAD_TASK_NAME}",
               "traefik.http.routers.${NOMAD_TASK_NAME}.tls=true",
-              "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=cloudflare",
-              "traefik.http.routers.${NOMAD_TASK_NAME}.middlewares=authelia@file"
+              "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=cloudflare"
+            //   "traefik.http.routers.${NOMAD_TASK_NAME}.middlewares=authelia@file"
             ]
 
           check {
               type     = "tcp"
-              port     = "port1"
+              port     = "http"
               interval = "30s"
               timeout  = "4s"
           }
@@ -78,8 +88,8 @@ job "freshrss" {
       } // service
 
       resources {
-          cpu    = 100 # MHz
-          memory = 300 # MB
+          cpu    = 5000 # MHz
+          memory = 1000 # MB
       } // resources
 
     } // task

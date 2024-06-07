@@ -1,13 +1,13 @@
-job "TEMPLATE" {
+job "speedtest" {
     region      = "global"
     datacenters = ["{{ datacenter_name }}"]
     type        = "service"
 
-    // constraint {
-    //     attribute = "${node.unique.name}"
-    //     operator  = "regexp"
-    //     value     = "rpi(1|2|3)"
-    // }
+    constraint {
+        attribute = "${node.unique.name}"
+        operator  = "regexp"
+        value     = "macmini"
+    }
 
     update {
         max_parallel      = 1
@@ -20,7 +20,7 @@ job "TEMPLATE" {
         stagger           = "30s"
     }
 
-    group "TEMPLATE" {
+    group "speedtest" {
 
         count = 1
 
@@ -31,26 +31,27 @@ job "TEMPLATE" {
 
         network {
             port "port1" {
-                static = "80"
                 to     = "80"
             }
         }
 
-        task "TEMPLATE" {
+        task "speedtest" {
 
             env {
-                PUID = "${meta.PUID}"
-                PGID = "${meta.PGID}"
-                TZ   = "America/New_York"
+                PUID          = "${meta.PUID}"
+                PGID          = "${meta.PGID}"
+                TZ            = "America/New_York"
+                DB_CONNECTION = "sqlite"
+                APP_KEY       = "{{ speedtest_app_key }}"
             }
 
             driver = "docker"
             config {
-                image              = ""
+                image              = "lscr.io/linuxserver/speedtest-tracker:latest"
                 image_pull_timeout = "10m"
                 hostname           = "${NOMAD_TASK_NAME}"
                 volumes            = [
-                    "${meta.nfsStorageRoot}/pi-cluster/${NOMAD_TASK_NAME}:/etc/TEMPLATE/"
+                    "${meta.nfsStorageRoot}/pi-cluster/${NOMAD_TASK_NAME}:/config"
                 ]
                 ports = ["port1"]
             } // docker config
@@ -65,8 +66,7 @@ job "TEMPLATE" {
                     "traefik.http.routers.${NOMAD_TASK_NAME}.entryPoints=web,websecure",
                     "traefik.http.routers.${NOMAD_TASK_NAME}.service=${NOMAD_TASK_NAME}",
                     "traefik.http.routers.${NOMAD_TASK_NAME}.tls=true",
-                    "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=cloudflare",
-                    "traefik.http.routers.${NOMAD_TASK_NAME}.middlewares=authelia@file"
+                    "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=cloudflare"
                     ]
 
                 check {
@@ -83,10 +83,10 @@ job "TEMPLATE" {
 
             } // service
 
-            // resources {
-            //     cpu    = 100 # MHz
-            //     memory = 300 # MB
-            // } // resources
+            resources {
+                cpu    = 1000 # MHz
+                memory = 200 # MB
+            } // resources
 
         } // task
 

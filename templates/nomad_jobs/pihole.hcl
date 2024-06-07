@@ -37,7 +37,7 @@ job "pihole" {
       // }
     }
 
-    task "await_filesytem" {
+    task "await_filesystem" {
       driver = "docker"
 
       config {
@@ -109,6 +109,7 @@ job "pihole" {
       service {
         name = "${NOMAD_JOB_NAME}"
         port = "web"
+        provider = "nomad"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`p.{{ homelab_domain_name }}`)",
@@ -118,7 +119,7 @@ job "pihole" {
           "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=cloudflare",
           "traefik.http.middlewares.piholeRedirect.redirectregex.regex=^(https?://p\\.{{ homelab_domain_name }})/?$",
           "traefik.http.middlewares.piholeRedirect.redirectregex.replacement=$${1}/admin/",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.middlewares=authelia@file,piholeRedirect"
+          "traefik.http.routers.${NOMAD_JOB_NAME}.middlewares=piholeRedirect"
         ]
         check {
           type     = "http"
@@ -130,13 +131,13 @@ job "pihole" {
         check_restart {
           limit           = 3
           grace           = "10m"
-          ignore_warnings = false
         }
       }
 
       service {
         name = "piholeDNStcp"
         port = "dns"
+        provider = "nomad"
         check {
           type     = "tcp"
           port     = "dns"

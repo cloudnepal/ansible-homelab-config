@@ -1,7 +1,12 @@
-job "TEMPLATE" {
+job "hishtory" {
+
     region      = "global"
     datacenters = ["{{ datacenter_name }}"]
     type        = "service"
+
+# README
+# https://github.com/linuxserver/docker-hishtory-server
+# https://github.com/ddworken/hishtory/blob/master/README.md
 
     // constraint {
     //     attribute = "${node.unique.name}"
@@ -20,7 +25,7 @@ job "TEMPLATE" {
         stagger           = "30s"
     }
 
-    group "TEMPLATE" {
+    group "hishtory" {
 
         count = 1
 
@@ -31,26 +36,26 @@ job "TEMPLATE" {
 
         network {
             port "port1" {
-                static = "80"
-                to     = "80"
+                to     = "8080"
             }
         }
 
-        task "TEMPLATE" {
+        task "hishtory" {
 
             env {
-                PUID = "${meta.PUID}"
-                PGID = "${meta.PGID}"
-                TZ   = "America/New_York"
+                PUID               = "${meta.PUID}"
+                PGID               = "${meta.PGID}"
+                TZ                 = "America/New_York"
+                HISHTORY_SQLITE_DB = "/config/hishtory.db"
             }
 
             driver = "docker"
             config {
-                image              = ""
+                image              = "lscr.io/linuxserver/hishtory-server:latest"
                 image_pull_timeout = "10m"
                 hostname           = "${NOMAD_TASK_NAME}"
                 volumes            = [
-                    "${meta.nfsStorageRoot}/pi-cluster/${NOMAD_TASK_NAME}:/etc/TEMPLATE/"
+                    "${meta.nfsStorageRoot}/pi-cluster/${NOMAD_TASK_NAME}:/config"
                 ]
                 ports = ["port1"]
             } // docker config
@@ -65,8 +70,7 @@ job "TEMPLATE" {
                     "traefik.http.routers.${NOMAD_TASK_NAME}.entryPoints=web,websecure",
                     "traefik.http.routers.${NOMAD_TASK_NAME}.service=${NOMAD_TASK_NAME}",
                     "traefik.http.routers.${NOMAD_TASK_NAME}.tls=true",
-                    "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=cloudflare",
-                    "traefik.http.routers.${NOMAD_TASK_NAME}.middlewares=authelia@file"
+                    "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=cloudflare"
                     ]
 
                 check {
@@ -83,10 +87,10 @@ job "TEMPLATE" {
 
             } // service
 
-            // resources {
-            //     cpu    = 100 # MHz
-            //     memory = 300 # MB
-            // } // resources
+            resources {
+                cpu    = 1800 # MHz
+                memory = 800 # MB
+            } // resources
 
         } // task
 

@@ -1,12 +1,12 @@
 ---
 repos:
     - repo: "https://github.com/commitizen-tools/commitizen"
-      rev: v2.42.1
+      rev: v3.18.4
       hooks:
           - id: "commitizen"
 
     - repo: "https://github.com/pre-commit/pre-commit-hooks"
-      rev: v4.4.0
+      rev: v4.5.0
       hooks:
           - id: check-added-large-files
           - id: check-ast
@@ -31,7 +31,7 @@ repos:
             args: [--markdown-linebreak-ext=md]
 
     - repo: "https://github.com/adrienverge/yamllint.git"
-      rev: v1.29.0
+      rev: v1.35.1
       hooks:
           - id: yamllint
             files: \.(yaml|yml)$
@@ -43,6 +43,21 @@ repos:
                 )\.(yaml|yml)$
             entry: yamllint --strict --config-file .yamllint.yml
 
+    - repo: "https://github.com/crate-ci/typos"
+      rev: v1.19.0
+      hooks:
+          - id: typos
+
+    - repo: "https://github.com/ansible/ansible-lint"
+      rev: v24.2.1
+      hooks:
+          - id: ansible-lint
+            additional_dependencies:
+                - ansible
+            args:
+                - --config-file
+                - .ansible-lint.yml
+
     - repo: local
       hooks:
           - id: vault-pre-commit
@@ -50,29 +65,20 @@ repos:
             entry: scripts/ansible-vault-precommit.sh
             language: system
 
+            # This calls a custom script. Remove if you don't need it.
           - id: stopwords
-            name: check stopwords
-            entry: scripts/stopwords.sh
+            name: stopwords
+            entry: git-stopwords
+            # args: ["-v"]
             language: system
-
-          - id: ansible-lint
-            name: running ansible-lint
-            language: system
-            files: \.(yaml|yml)$
-            pass_filenames: false
-            entry: ansible-lint --force-color --config-file .ansible-lint.yml
+            pass_filenames: true
+            types: [text]
 
           - id: "lint-shellscript-templates"
             name: lint shellscript templates
             language: system
             files: \.sh\.j2$
             entry: shellcheck -x --exclude=1009,1054,1056,1072,1073,1083,2001,2148
-
-          - id: "run-shellscripts-bats-tests"
-            name: run bats unit tests
-            language: system
-            files: \.bats$
-            entry: bats -t
 
           - id: "ansible-encryption-check"
             name: Ansible Encryption Check
